@@ -45,6 +45,24 @@ If you want to use a different stub when building a shim (for example, when
 testing a change to the stub code) you can use the `--stub` argument to
 specify the name of the sub exe directly.
 
+Current WIP changes (undocumented)
+----------------------------------
+
+The stub now works by taking an appended UTF8 text file. There's a sample
+in the file "footer". There's a wait element to determine whether to wait
+for the subcommand, but it defaults to true for a console shim and false
+for a gui one, so it should never need setting manually.
+
+The command element supports %% (%) %a (the arg list) and %d (the directory
+of the shim) substitutions.
+
+The "subsystem.py" script is the beginnings of a subsystem editing utility.
+Comments in the source include the relevant bits of the Windows headers.
+
+With the new system, I'm less sure how useful mkshim/template is. You can
+create a shim just by writing the footer and doing ```copy /b stub.exe+footer
+shim.exe```.
+
 Future Possibilities
 --------------------
 
