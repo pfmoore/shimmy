@@ -3,9 +3,9 @@ import base64
 import argparse
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Create exe wrapper links")
-    parser.add_argument("-f", "--filename", default="link.exe",
-            help="The filename of the generated link executable")
+    parser = argparse.ArgumentParser(description="Create executable shims")
+    parser.add_argument("-f", "--filename", default="shim.exe",
+            help="The filename of the generated shim")
     parser.add_argument("-c", "--command",
             help="The command to run (use %s for where the args should go)")
     parser.add_argument("--stub",

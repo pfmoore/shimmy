@@ -11,7 +11,7 @@ def main():
     with open('template.py') as template:
         script = template.read()
         script = script.replace('%%STUB%%', stub_txt)
-    with open('mkwrapper.py', 'w') as scriptfile:
+    with open('mkshim.py', 'w') as scriptfile:
         scriptfile.write(script)
 
 if __name__ == '__main__':

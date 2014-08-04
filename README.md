@@ -1,16 +1,19 @@
-Windows Executable Link Stubs
-=============================
+Windows Executable Shims
+========================
 
-This project allows the creation of Windows "executable stubs" - exe files
+This project allows the creation of Windows "executable shims" - exe files
 that when run, execute a defined command, passing the command line arguments
 on to the subcommand.
+
+They are similar to the shims used by the Python launcher for Windows, the
+"pyzzer" Python wrapper project, and the "chocolatey" project.
 
 Usage
 -----
 
-Create a stub wrapper as follows:
+Create a shim as follows:
 
-    mkwrapper.py -f filename.exe -c "a command"
+    mkshim.py -f filename.exe -c "a command"
 
 This will generate an executable, `filename.exe`, which when run, will execute
 `a command`. So, for example:
@@ -38,7 +41,7 @@ The stub executable is built from the `stub.c` source. The compile command is
 simply `cl /Festub.exe stub.c`. The script is built from `template.py` and the
 stub exe using `build.py`.
 
-If you want to use a different stub when building a link (for example, when
+If you want to use a different stub when building a shim (for example, when
 testing a change to the stub code) you can use the `--stub` argument to
 specify the name of the sub exe directly.
 
