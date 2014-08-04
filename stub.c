@@ -20,13 +20,11 @@ void terminate(wchar_t *message, ...) {
     exit(1);
 }
 
-void my_subsystem() {
+int my_subsystem() {
     char *me = GetModuleHandle(NULL);
     PIMAGE_DOS_HEADER pdosheader = (PIMAGE_DOS_HEADER)me;
     PIMAGE_NT_HEADERS pntheaders = (PIMAGE_NT_HEADERS)(me + pdosheader->e_lfanew);
-    wprintf(L"Header %s ok\n", 
-        (pdosheader->e_magic == IMAGE_DOS_SIGNATURE) ? L"is" : L"is not");
-    wprintf(L"Subsystem = %d\n", pntheaders->OptionalHeader.Subsystem);
+    return pntheaders->OptionalHeader.Subsystem;
 }
 
 #define MAX_APPENDED 1024
@@ -253,7 +251,10 @@ int run_process(wchar_t *args) {
     PROCESS_INFORMATION pi;
     int exit = 0;
     wchar_t *placeholder;
-    int wait = 1;
+    /* Subsystem 2 is GUI, 3 is console.
+     * Don't wait if we're a GUI executable
+     */
+    int wait = my_subsystem() == 2 ? 0 : 1;
     wchar_t *cmdline;
     wchar_t *command;
 
