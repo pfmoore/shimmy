@@ -21,7 +21,7 @@ void terminate(wchar_t *message, ...) {
 }
 
 int my_subsystem() {
-    char *me = GetModuleHandle(NULL);
+    HMODULE me = GetModuleHandle(NULL);
     PIMAGE_DOS_HEADER pdosheader = (PIMAGE_DOS_HEADER)me;
     PIMAGE_NT_HEADERS pntheaders = (PIMAGE_NT_HEADERS)(me + pdosheader->e_lfanew);
     return pntheaders->OptionalHeader.Subsystem;
@@ -217,7 +217,7 @@ wchar_t *interpolate(wchar_t *template, wchar_t *args) {
         }
         ++n;
     }
-    wprintf(L"Result len: %d\n", n);
+    wprintf(L"Result len: %zd\n", n);
 
     result = malloc((n+1) * sizeof(wchar_t));
     if (result == 0)
