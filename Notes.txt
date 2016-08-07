@@ -1,0 +1,16 @@
+Use cases
+---------
+
+executable=absolute path
+executable=relative path
+
+Relative to:
+shim
+HKLM\Software\JavaSoft\Jave Development Kit\1.8 => value JavaHome
+git.exe (found in PATH)
+
+Add environment variables
+Replace existing
+Append to (say) PATH
+
+Set cwd
