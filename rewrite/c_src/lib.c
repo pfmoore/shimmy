@@ -6,6 +6,7 @@
 #define RC_CREATE_PROCESS 1
 #define RC_NO_STD_HANDLES 2
 #define RC_NOT_ENOUGH_MEM 3
+#define RC_LOAD_DATA      4
 
 static void error(int rc, wchar_t *msg, ...) {
     exit(rc);
@@ -41,16 +42,16 @@ static wchar_t *skip_initarg(wchar_t *cmdline)
     return result;
 }
 
-static void env_from_block(wchar_t *block) {
-    wchar_t *name = block;
-    wchar_t *value;
+typedef struct kv {
+    const wchar_t *key;
+    const wchar_t *value;
+} kv;
 
-    while (*name) {
-        size_t n = wcslen(name);
-        value = name + n + 1;
-        SetEnvironmentVariableW(name, *value ? value : NULL);
-        n = wcslen(value);
-        name = value + n + 1;
+static void env_from_block(kv *block) {
+
+    while (block->key) {
+        SetEnvironmentVariableW(block->key, block->value);
+        ++block;
     }
 }
 
@@ -255,4 +256,120 @@ run_child(wchar_t * cmdline)
     if (!ok)
         error(RC_CREATE_PROCESS, L"Failed to get exit code of process");
     exit(rc);
+}
+
+typedef struct shim_data {
+    unsigned int exe_type;
+    const wchar_t *exe;
+    const wchar_t *base;
+    const wchar_t *cwd;
+    /* Multiple entries, terminated with {0, 0} */
+    kv env[1];
+} shim_data;
+
+
+static unsigned int read_4byte(const unsigned char *loc) {
+    return (loc[0] << 24) + (loc[1] << 16) + (loc[2] << 8) + loc[3];
+}
+
+static const wchar_t *read_string(const unsigned char *loc, const unsigned char *stringtab) {
+    unsigned int n = read_4byte(loc);
+    return n == 0xFFFFFFFF ? NULL : (wchar_t *)(stringtab + n);
+}
+
+void load_appended_data()
+{
+    BOOL bFlag;
+    DWORD dwFileSize;
+    wchar_t exe_name[MAX_PATH+1];
+    HANDLE hMapFile;
+    HANDLE hFile;
+    LPVOID lpMapAddress;
+    const unsigned char *start;
+    const unsigned char *end;
+    const unsigned char *stringtab;
+    unsigned int n_env;
+    unsigned int i;
+    shim_data *data;
+
+    if (!GetModuleFileNameW(NULL, exe_name, MAX_PATH)) {
+        error(RC_LOAD_DATA, L"Could not get executable name");
+    }
+
+    hFile = CreateFileW(exe_name, GENERIC_READ,
+                /* Let everyone else at the file, e.g., antivirus? */
+                FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+                NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        error(RC_LOAD_DATA, L"Could not open executable %d", GetLastError());
+    }
+
+    dwFileSize = GetFileSize(hFile, NULL);
+    if (dwFileSize == 0) {
+        error(RC_LOAD_DATA, L"Executable appears to be 0 bytes long");
+    }
+
+    hMapFile = CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+    if (hMapFile == NULL) {
+        error(RC_LOAD_DATA, L"Mapping the file failed - error %d", GetLastError());
+    }
+
+    lpMapAddress = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
+    if (lpMapAddress == NULL) {
+        error(RC_LOAD_DATA, L"Mapping the view failed - error %d", GetLastError());
+    }
+
+    /* Get the appended data. Format is:
+     *
+     * XXXX....XXXX Data block (see below)
+     * XXXX....XXXX Character data table, all strings are encoded as UTF-16LE and null terminated.
+     * XXXX         Offset of the start of the character data from the appended data start.
+     * XXXX         Length of appended data.
+     */
+    end = ((const char *)lpMapAddress) + dwFileSize;
+    start = end - read_4byte(end-4);
+    stringtab = start + read4byte(end-8);
+
+    /* Data block format:
+     *
+     *  0 XXXX Marker - "SHIM"
+     *  4 XXXX Type of base relative (0 = pathname, 1 = exe on PATH, 2 = env var, 3 = registry)
+     *  8 XXXX Offset of exe name in string table
+     * 12 XXXX Offset of base for relative exe in string table (0xFFFFFFFF means "exe name is absolute")
+     * 16 XXXX Offset of cwd in string table (0xFFFFFFFF means "don't set CWD")
+     * 20 XXXX Number of environment variable entries
+     * n times:
+     *     24 + 8*n XXXX Offset of env var name in string table
+     *     28 + 8*n XXXX Offset of env var value in string table (0xFFFFFFFF means "Remove")
+     */
+
+    /* Check for marker */
+    if (memcmp(start, "SHIM", 4) != 0) {
+        error(RC_LOAD_DATA, L"Data block does not start with correct marker");
+    }
+
+    n_env = read_4byte(start + 20);
+    data = (shim_data *)malloc(sizeof(shim_data) + n_env * sizeof(kv));
+    if (data == NULL) {
+        error(RC_NOT_ENOUGH_MEM, L"Not enough memory for shim data");
+    }
+
+    data->exe_type = read_4byte(start + 4);
+    data->exe = read_string(start + 8, stringtab);
+    data->base = read_string(start + 12, stringtab);
+    data->cwd = read_string(start + 16, stringtab);
+    for (i = 0; i < n_env; ++i) {
+        data->env[i].key = read_string(start + 24 + 8 * i, stringtab);
+        data->env[i].value = read_string(start + 28 + 8 * i, stringtab);
+    }
+    data->env[n_env].key = 0;
+    data->env[n_env].value = 0;
+
+    bFlag = UnmapViewOfFile(lpMapAddress);
+    bFlag = CloseHandle(hMapFile);
+    bFlag = CloseHandle(hFile);
+    if(!bFlag) {
+        // Error occurred - do we report it?
+    }
 }
