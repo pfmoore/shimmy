@@ -55,7 +55,7 @@ static void env_from_block(kv *block) {
     }
 }
 
-static void set_cwd(wchar_t *cwd) {
+void set_cwd(wchar_t *cwd) {
     SetCurrentDirectoryW(cwd);
 }
 
@@ -329,7 +329,7 @@ void load_appended_data()
      */
     end = ((const char *)lpMapAddress) + dwFileSize;
     start = end - read_4byte(end-4);
-    stringtab = start + read4byte(end-8);
+    stringtab = start + read_4byte(end-8);
 
     /* Data block format:
      *
