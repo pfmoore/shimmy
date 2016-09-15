@@ -3,14 +3,20 @@ from pathlib import Path
 from shutil import rmtree
 
 @task
+def build(ctx):
+    print("Building object library")
+    # /MD avoids a warning in the CFFI build. May affect the exe build...
+    ctx.run("cl /nologo /c /Ic_src /MD c_src\\lib.c")
+    ctx.run("lib /nologo /out:lib.lib lib.obj")
+
+@task(build)
+def build_cffi(ctx):
+    print("Building Python interface library")
+    ctx.run("py lib_build.py")
+
+@task(build_cffi)
 def test(ctx):
     ctx.run("py.test")
-
-@task
-def build(ctx):
-    ctx.run("cl /nologo /c c_src\\lib.c")
-    ctx.run("lib /nologo /out:lib.lib lib.obj")
-    ctx.run("py lib_build.py")
 
 @task
 def clean(ctx):

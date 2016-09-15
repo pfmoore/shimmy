@@ -8,15 +8,22 @@ from cffi import FFI
 ffibuilder = FFI()
 
 ffibuilder.set_source("_lib",
-        """extern void set_cwd(wchar_t *cwd); """,
+        """
+        #include "lib.h"
+        """,
     libraries=["lib"],
-    library_dirs=["C:\\Work\\Projects\\shimmy\\rewrite"]
+    include_dirs=["c_src"],
+    library_dirs=["."]
     )   # or a list of libraries to link with
     # (more arguments like setup.py's Extension class:
     # include_dirs=[..], extra_objects=[..], and so on)
 
 ffibuilder.cdef("""     // some declarations from the man page
+    wchar_t *skip_initarg(wchar_t *cmdline);
     void set_cwd(wchar_t *cwd);
+    wchar_t *find_on_path(wchar_t *name);
+
+    wchar_t *make_absolute(wchar_t *path, wchar_t *base);
 """)
 
 if __name__ == "__main__":

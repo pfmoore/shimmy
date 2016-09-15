@@ -3,6 +3,8 @@
 #include <windows.h>
 #include <tchar.h>
 
+#include "lib.h"
+
 #define RC_CREATE_PROCESS 1
 #define RC_NO_STD_HANDLES 2
 #define RC_NOT_ENOUGH_MEM 3
@@ -19,7 +21,7 @@ static wchar_t *skip_whitespace(wchar_t *p)
     return p;
 }
 
-static wchar_t *skip_initarg(wchar_t *cmdline)
+wchar_t *skip_initarg(wchar_t *cmdline)
 {
     int quoted;
     wchar_t c;
@@ -82,7 +84,7 @@ static int is_absolute(wchar_t *path) {
     return path[0] == L'\\' || (path[0] != L'\0' && path[1] == L':');
 }
 
-static wchar_t *find_on_path(wchar_t *name)
+wchar_t *find_on_path(wchar_t *name)
 {
     wchar_t *pathext;
     size_t   varsize;
@@ -125,7 +127,7 @@ static wchar_t *find_on_path(wchar_t *name)
     return result;
 }
 
-static wchar_t *make_absolute(wchar_t *path, wchar_t *base) {
+wchar_t *make_absolute(wchar_t *path, wchar_t *base) {
     wchar_t *ret;
     size_t sz;
 
